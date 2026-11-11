@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101812">
+<title>Scouting Lab — análisis de jugadores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --background: #101812;
+  --surface: #19231c;
+  --surface-raised: #202c23;
+  --line: #334138;
+  --text: #f0f3ed;
+  --muted: #9ca99e;
+  --accent: #c4f267;
+  --accent-dark: #a4d844;
+  --danger: #ff9a8b;
+  --font-display: "Barlow Condensed", Impact, sans-serif;
+  --font-body: "DM Sans", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 75% -15%, rgb(196 242 103 / 8%), transparent 36rem),
+    var(--background);
+  color: var(--text);
+  font: 400 15px/1.5 var(--font-body);
+}
+button, input, select { font: inherit; }
+.topbar {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(20px, 5vw, 72px);
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #172111;
+}
+.brand-mark svg { width: 20px; height: 20px; }
+.brand-name { font: 700 21px/1 var(--font-display); letter-spacing: .03em; }
+.brand-name span { color: var(--accent); }
+.topbar-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgb(196 242 103 / 75%);
+}
+main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 46px 0 64px; }
+.intro { margin-bottom: 28px; }
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: 8px; font: 700 clamp(38px, 5vw, 54px)/.98 var(--font-display); letter-spacing: .01em; }
+.intro-copy { max-width: 520px; margin-bottom: 0; color: var(--muted); }
+.workspace { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; align-items: stretch; }
+.panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgb(255 255 255 / 2%), transparent 58%), var(--surface);
+}
+.form-panel { padding: clamp(20px, 3vw, 30px); }
+.panel-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.heading-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(196 242 103 / 23%);
+  border-radius: 11px;
+  background: rgb(196 242 103 / 8%);
+  color: var(--accent);
+}
+.heading-icon svg { width: 19px; height: 19px; }
+.panel-heading h2 { margin: 0; font: 600 21px/1.1 var(--font-display); }
+.panel-heading p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.field { margin-top: 16px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+label, .field-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: #dce3da; font-size: 12px; font-weight: 600; }
+.optional { color: #849287; font-size: 11px; font-weight: 400; }
+input, select {
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+  background: #131b15;
+  color: var(--text);
+  transition: border-color .2s, box-shadow .2s;
+}
+input::placeholder { color: #657368; }
+input:focus-visible, select:focus-visible, button:focus-visible, input[type="range"]:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid rgb(196 242 103 / 32%);
+  outline-offset: 2px;
+}
+.height-controls { display: grid; grid-template-columns: 1fr 86px; gap: 12px; align-items: center; }
+input[type="range"] {
+  min-height: auto;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--accent), #70834e); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--accent), #70834e); }
+input[type="range"]::-webkit-slider-thumb {
+  width: 15px;
+  height: 15px;
+  margin-top: -5.5px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  appearance: none;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+input[type="range"]::-moz-range-thumb { width: 10px; height: 10px; border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.field-hint { display: block; margin-top: 6px; color: #829085; font-size: 11px; }
+.analyze-button {
+  display: flex;
+  width: 100%;
+  min-height: 47px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 24px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #172111;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s, transform .2s;
+}
+.analyze-button:hover { transform: translateY(-1px); background: #d1ff7f; }
+.analyze-button:disabled { opacity: .65; cursor: wait; transform: none; }
+.analyze-button svg { width: 17px; height: 17px; }
+.preview-panel { display: flex; min-height: 520px; flex-direction: column; overflow: hidden; }
+.preview-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 22px 24px 12px; }
+.preview-title { margin: 0; font: 600 21px/1.1 var(--font-display); }
+.preview-caption { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+.height-badge {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid rgb(196 242 103 / 24%);
+  border-radius: 6px;
+  background: rgb(196 242 103 / 8%);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.scene {
+  position: relative;
+  min-height: 285px;
+  flex: 1;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 70%, rgb(126 175 78 / 15%), transparent 50%),
+    linear-gradient(180deg, #19251d 0%, #17231b 68%, #1a2a1d 100%);
+}
+.scene::before {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 30px;
+  background: linear-gradient(var(--surface), transparent);
+  content: "";
+  pointer-events: none;
+}
+.scene canvas { display: block; width: 100%; height: 100%; }
+.scene-status {
+  position: absolute;
+  z-index: 2;
+  right: 12px;
+  bottom: 10px;
+  left: 12px;
+  color: #a8b69e;
+  font-size: 10px;
+  text-align: center;
+  pointer-events: none;
+}
+.scene-status.error { color: var(--danger); }
+.result {
+  min-height: 120px;
+  padding: 18px 24px 20px;
+  border-top: 1px solid var(--line);
+  background: rgb(0 0 0 / 10%);
+}
+.result-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.result-label { margin: 0; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+#nombre { margin: 3px 0 0; font: 600 20px/1.1 var(--font-display); }
+#veredicto { flex: 0 0 auto; color: var(--muted); font: 700 19px/1 var(--font-display); }
+#veredicto.elite { color: var(--accent); }
+.meter { height: 5px; margin: 14px 0 7px; overflow: hidden; border-radius: 9px; background: #354138; }
+#progreso { width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .6s ease; }
+#veredicto.elite ~ .meter #progreso { background: var(--accent); }
+#detalle, #vacio { margin: 0; color: var(--muted); font-size: 11px; }
+#error { margin: 10px 0 0; color: var(--danger); font-size: 12px; }
+#salida[hidden] { display: none; }
+.footer-note { margin: 18px 0 0; color: #718075; font-size: 11px; text-align: center; }
+@media (max-width: 760px) {
+  main { width: min(560px, calc(100% - 32px)); padding-top: 34px; }
+  .workspace { grid-template-columns: 1fr; }
+  .preview-panel { min-height: 480px; }
+}
+@media (max-width: 420px) {
+  .topbar { height: 62px; padding: 0 16px; }
+  .topbar-tag { font-size: 9px; }
+  main { width: calc(100% - 24px); padding-top: 28px; }
+  .form-panel { padding: 18px; }
+  .preview-top, .result { padding-right: 18px; padding-left: 18px; }
+  .field-row { gap: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4.5 7v7L12 21l7.5-7V7L12 3Z"/><path d="m12 8 2.5 1.8-1 3h-3l-1-3L12 8Zm-2.5 1.8-3.8-.2m7.8.2 3.8-.2m-6.3 3-2.6 3.3m5.6-3.3 2.6 3.3"/></svg>
+    </span>
+    <span class="brand-name">SCOUTING <span>LAB</span></span>
+  </div>
+  <div class="topbar-tag"><span class="live-dot" aria-hidden="true"></span> Player analytics</div>
+</header>
+<main>
+  <section class="intro">
+    <p class="eyebrow">Centro de análisis · temporada 2025/26</p>
+    <h1>Conoce el potencial<br>de cada jugador.</h1>
+    <p class="intro-copy">Completa el perfil y explora su modelo 3D. Ajusta la estatura para ver cómo cambia su escala en tiempo real.</p>
+  </section>
+  <div class="workspace">
+    <section class="panel form-panel" aria-labelledby="perfil-titulo">
+      <div class="panel-heading">
+        <span class="heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20v-1.6a6.5 6.5 0 0 1 13 0V20h-13Z"/></svg>
+        </span>
+        <div><h2 id="perfil-titulo">Perfil del jugador</h2><p>Ingresa sus datos para comenzar</p></div>
+      </div>
+      <form id="form">
+        <div class="field">
+          <label for="jugador">Nombre <span class="optional">Opcional</span></label>
+          <input id="jugador" type="text" placeholder="Ej. Alex Rivera" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="posicion">Posición</label>
+          <select id="posicion">
+            <option value="Attack">Delantero (Attack)</option>
+            <option value="Midfield">Mediocampista (Midfield)</option>
+            <option value="Defender">Defensa (Defender)</option>
+            <option value="Goalkeeper">Portero (Goalkeeper)</option>
+            <option value="">Sin posición</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="edad">Edad <span class="optional">Años</span></label>
+            <input id="edad" type="number" min="14" max="50" required placeholder="22" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label for="estatura">Estatura <span class="optional">cm</span></label>
+            <input id="estatura" type="number" min="140" max="220" placeholder="180" inputmode="numeric" aria-describedby="height-hint">
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label"><label for="height-range">Ajustar estatura</label><span class="optional">140–220 cm</span></span>
+          <div class="height-controls">
+            <input id="height-range" type="range" min="140" max="220" value="175" aria-label="Ajustar estatura del jugador entre 140 y 220 centímetros">
+            <output id="height-output" for="height-range">175 cm</output>
+          </div>
+          <small id="height-hint" class="field-hint">La figura 3D cambia de tamaño al ajustar la estatura. Si la dejas vacía, la API imputará la mediana de la posición.</small>
+        </div>
+        <button id="btn" class="analyze-button" type="submit">
+          Analizar jugador
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </button>
+      </form>
+    </section>
+    <section class="panel preview-panel" aria-labelledby="preview-title">
+      <div class="preview-top">
+        <div><h2 id="preview-title" class="preview-title">Vista del jugador</h2><p class="preview-caption">Modelo 3D · escala proporcional</p></div>
+        <span id="height-badge" class="height-badge">175 cm</span>
+      </div>
+      <div id="scene" class="scene" role="img" aria-label="Vista tridimensional de un jugador de fútbol a escala proporcional según su estatura">
+        <p id="scene-status" class="scene-status" aria-live="polite">Cargando modelo 3D…</p>
+      </div>
+      <div class="result" aria-live="polite">
+        <div class="result-top">
+          <div>
+            <p class="result-label">Diagnóstico de potencial</p>
+            <p id="nombre">Tu próximo talento</p>
+          </div>
+          <div id="veredicto">—</div>
+        </div>
+        <div id="salida" hidden>
+          <div class="meter" role="progressbar" aria-label="Probabilidad de ser Élite" aria-valuemin="0" aria-valuemax="100" id="pb"><div id="progreso"></div></div>
+          <small id="detalle"></small>
+        </div>
+        <p id="vacio">Completa el perfil para consultar el resultado.</p>
+        <p id="error" role="alert"></p>
+      </div>
+    </section>
+  </div>
+  <p class="footer-note">La visualización es una representación ilustrativa y proporcional de la estatura ingresada.</p>
+</main>
+<script>
+const API_URL = "http://127.0.0.1:8000/predict";
+const getElementById = id => document.getElementById(id);
+
+getElementById("form").addEventListener("submit", async event => {
+  event.preventDefault();
+  getElementById("error").textContent = "";
+  getElementById("btn").disabled = true;
+  const height = getElementById("estatura").value;
+  const payload = {
+    jugador: getElementById("jugador").value.trim() || null,
+    posicion: getElementById("posicion").value || null,
+    edad: Number(getElementById("edad").value),
+    estatura_cm: height === "" ? null : Number(height)
+  };
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error("La API respondió con el estado " + response.status + ". Revisa los valores ingresados.");
+    const result = await response.json();
+    getElementById("vacio").hidden = true;
+    getElementById("salida").hidden = false;
+    getElementById("nombre").textContent = result.jugador || "Jugador sin nombre";
+    getElementById("veredicto").textContent = result.prediccion;
+    getElementById("veredicto").className = result.prediccion === "Élite" ? "elite" : "";
+    getElementById("progreso").style.width = "0";
+    requestAnimationFrame(() => { getElementById("progreso").style.width = result.probabilidad_elite + "%"; });
+    getElementById("pb").setAttribute("aria-valuenow", result.probabilidad_elite);
+    getElementById("detalle").textContent = "Probabilidad de ser Élite: " + result.probabilidad_elite + " % · " +
+      result.posicion + ", " + result.edad + " años, " + result.estatura_cm + " cm";
+  } catch (error) {
+    getElementById("error").textContent = error instanceof TypeError
+      ? "No se pudo conectar con la API. Verifica que el servidor esté activo en " + API_URL
+      : error.message;
+  } finally {
+    getElementById("btn").disabled = false;
+  }
+});
+</script>
+<script type="module">
+const $ = id => document.getElementById(id);
+const sceneContainer = $("scene");
+const status = $("scene-status");
+let THREE;
+try {
+  THREE = await import("https://unpkg.com/three@0.170.0/build/three.module.js");
+} catch (error) {
+  status.classList.add("error");
+  status.textContent = "No se pudo cargar el modelo 3D. Verifica tu conexión.";
+  console.error("No se pudo cargar Three.js:", error);
+  throw error;
+}
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#19251d");
+scene.fog = new THREE.Fog("#19251d", 5.5, 12);
+
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 30);
+camera.position.set(0.18, 1.76, 5.35);
+camera.lookAt(0, 1.04, 0);
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+} catch (error) {
+  status.classList.add("error");
+  status.textContent = "No se pudo iniciar la vista 3D en este navegador.";
+  console.error("No se pudo iniciar WebGL:", error);
+  throw error;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+sceneContainer.prepend(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight("#e4f2dc", "#435443", 2.2));
+const keyLight = new THREE.DirectionalLight("#fff1d2", 3);
+keyLight.position.set(-3, 5, 4);
+scene.add(keyLight);
+scene.add(new THREE.DirectionalLight("#b5df8b", 1.5));
+
+const field = new THREE.Mesh(
+  new THREE.PlaneGeometry(200, 200),
+  new THREE.MeshStandardMaterial({ color: "#354d32", roughness: 1 })
+);
+field.rotation.x = -Math.PI / 2;
+field.position.y = -0.035;
+field.receiveShadow = true;
+scene.add(field);
+
+const pitchLines = new THREE.Group();
+const lineMaterial = new THREE.MeshBasicMaterial({ color: "#aac394", transparent: true, opacity: 0.24 });
+const line = (width, height, x, z) => {
+  const mark = new THREE.Mesh(new THREE.PlaneGeometry(width, height), lineMaterial);
+  mark.rotation.x = -Math.PI / 2;
+  mark.position.set(x, -0.02, z);
+  pitchLines.add(mark);
+};
+line(3.8, 0.014, 0, 0);
+line(0.014, 2.6, -1.9, -1.3);
+line(0.014, 2.6, 1.9, -1.3);
+line(3.8, 0.014, 0, -2.6);
+scene.add(pitchLines);
+
+const player = new THREE.Group();
+scene.add(player);
+const shadow = new THREE.Mesh(
+  new THREE.CircleGeometry(0.3, 40),
+  new THREE.MeshBasicMaterial({ color: "#111710", transparent: true, opacity: 0.32, depthWrite: false })
+);
+shadow.rotation.x = -Math.PI / 2;
+shadow.position.set(0, -0.02, 0.08);
+scene.add(shadow);
+
+let characterImage;
+try {
+  characterImage = await new THREE.TextureLoader().loadAsync("./assets/jugador-referencia.png");
+} catch (error) {
+  status.classList.add("error");
+  status.textContent = "No se pudo cargar la imagen del jugador.";
+  console.error("No se pudo cargar la textura del jugador:", error);
+  throw error;
+}
+characterImage.colorSpace = THREE.SRGBColorSpace;
+characterImage.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const imageWidth = 0.94;
+const imageHeight = imageWidth * 555 / 260;
+const characterMaterial = new THREE.MeshBasicMaterial({
+  map: characterImage, transparent: true, alphaTest: 0.015, side: THREE.DoubleSide, toneMapped: false
+});
+const character = new THREE.Mesh(new THREE.PlaneGeometry(imageWidth, imageHeight), characterMaterial);
+character.position.set(0, imageHeight / 2, 0.12);
+character.renderOrder = 1;
+player.add(character);
+
+const outfitCanvas = document.createElement("canvas");
+outfitCanvas.width = 520;
+outfitCanvas.height = 1110;
+const outfitContext = outfitCanvas.getContext("2d");
+const outfitTexture = new THREE.CanvasTexture(outfitCanvas);
+outfitTexture.colorSpace = THREE.SRGBColorSpace;
+outfitTexture.magFilter = THREE.LinearFilter;
+const outfitMaterial = new THREE.MeshBasicMaterial({
+  map: outfitTexture, transparent: true, alphaTest: 0.015, depthWrite: false,
+  side: THREE.DoubleSide, toneMapped: false
+});
+const outfit = new THREE.Mesh(new THREE.PlaneGeometry(imageWidth, imageHeight), outfitMaterial);
+outfit.position.set(0, imageHeight / 2, 0.135);
+outfit.renderOrder = 2;
+player.add(outfit);
+
+const normalKit = {
+  shirt: new THREE.Color("#202a63"),
+  shorts: new THREE.Color("#17224e"),
+  trim: new THREE.Color("#d8b45a"),
+  stripe: new THREE.Color("#a82048")
+};
+const goalkeeperKit = {
+  shirt: new THREE.Color("#338265"),
+  shorts: new THREE.Color("#202b30"),
+  trim: new THREE.Color("#e8d28f"),
+  stripe: new THREE.Color("#338265")
+};
+const displayColor = color => `#${color.getHexString()}`;
+function drawClothing(keeperBlend) {
+  const ctx = outfitContext;
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  ctx.clearRect(0, 0, 260, 555);
+  const shirtColor = normalKit.shirt.clone().lerp(goalkeeperKit.shirt, keeperBlend);
+  const shortsColor = normalKit.shorts.clone().lerp(goalkeeperKit.shorts, keeperBlend);
+  const trimColor = normalKit.trim.clone().lerp(goalkeeperKit.trim, keeperBlend);
+  const stripeColor = normalKit.stripe.clone().lerp(goalkeeperKit.stripe, keeperBlend);
+  const shirtGradient = ctx.createLinearGradient(64, 0, 198, 0);
+  shirtGradient.addColorStop(0, displayColor(shirtColor.clone().multiplyScalar(0.68)));
+  shirtGradient.addColorStop(0.48, displayColor(shirtColor));
+  shirtGradient.addColorStop(1, displayColor(shirtColor.clone().multiplyScalar(0.76)));
+
+  ctx.fillStyle = shirtGradient;
+  ctx.beginPath();
+  ctx.moveTo(75, 101);
+  ctx.quadraticCurveTo(85, 91, 104, 91);
+  ctx.lineTo(119, 84);
+  ctx.quadraticCurveTo(131, 81, 143, 87);
+  ctx.lineTo(158, 95);
+  ctx.quadraticCurveTo(180, 91, 194, 106);
+  ctx.lineTo(183, 131);
+  ctx.quadraticCurveTo(178, 147, 179, 167);
+  ctx.lineTo(176, 215);
+  ctx.quadraticCurveTo(174, 231, 162, 235);
+  ctx.lineTo(96, 235);
+  ctx.quadraticCurveTo(82, 231, 80, 216);
+  ctx.lineTo(78, 166);
+  ctx.quadraticCurveTo(78, 145, 71, 128);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(75, 101);
+  ctx.quadraticCurveTo(85, 91, 104, 91);
+  ctx.lineTo(119, 84);
+  ctx.quadraticCurveTo(131, 81, 143, 87);
+  ctx.lineTo(158, 95);
+  ctx.quadraticCurveTo(180, 91, 194, 106);
+  ctx.lineTo(183, 131);
+  ctx.quadraticCurveTo(178, 147, 179, 167);
+  ctx.lineTo(176, 215);
+  ctx.quadraticCurveTo(174, 231, 162, 235);
+  ctx.lineTo(96, 235);
+  ctx.quadraticCurveTo(82, 231, 80, 216);
+  ctx.lineTo(78, 166);
+  ctx.quadraticCurveTo(78, 145, 71, 128);
+  ctx.closePath();
+  ctx.clip();
+  ctx.globalAlpha = 1 - keeperBlend;
+  for (const x of [88, 120, 152, 184]) {
+    ctx.fillStyle = displayColor(stripeColor);
+    ctx.fillRect(x, 82, 16, 158);
+  }
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = "#ffffff";
+  for (let y = 110; y < 230; y += 5) ctx.fillRect(65, y, 140, 1);
+  ctx.globalAlpha = 1 - keeperBlend;
+  ctx.strokeStyle = displayColor(trimColor.clone().multiplyScalar(0.72));
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(130, 105);
+  ctx.lineTo(130, 226);
+  ctx.stroke();
+  ctx.restore();
+
+  const drawLeftSleeve = (longSleeve, color, alpha) => {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    const sleevePath = new Path2D();
+    if (longSleeve) {
+      sleevePath.moveTo(76, 100);
+      sleevePath.quadraticCurveTo(59, 103, 54, 126);
+      sleevePath.lineTo(45, 164);
+      sleevePath.quadraticCurveTo(42, 181, 35, 204);
+      sleevePath.lineTo(23, 260);
+      sleevePath.quadraticCurveTo(20, 273, 27, 280);
+      sleevePath.quadraticCurveTo(34, 284, 40, 268);
+      sleevePath.lineTo(66, 195);
+      sleevePath.quadraticCurveTo(77, 161, 86, 132);
+    } else {
+      sleevePath.moveTo(76, 100);
+      sleevePath.quadraticCurveTo(59, 102, 54, 125);
+      sleevePath.lineTo(47, 155);
+      sleevePath.quadraticCurveTo(45, 166, 44, 173);
+      sleevePath.quadraticCurveTo(52, 179, 65, 179);
+      sleevePath.quadraticCurveTo(71, 166, 75, 152);
+      sleevePath.lineTo(85, 130);
+    }
+    sleevePath.quadraticCurveTo(82, 110, 76, 100);
+    sleevePath.closePath();
+    ctx.fill(sleevePath);
+    if (!longSleeve) {
+      ctx.save();
+      ctx.clip(sleevePath);
+      ctx.globalAlpha = alpha * (1 - keeperBlend);
+      ctx.fillStyle = displayColor(stripeColor);
+      ctx.fillRect(57, 116, 5, 65);
+      ctx.globalAlpha = alpha * 0.18;
+      ctx.fillStyle = "#ffffff";
+      for (let y = 122; y < 172; y += 5) ctx.fillRect(42, y, 46, 1);
+      ctx.restore();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = displayColor(trimColor);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(45, 169);
+      ctx.quadraticCurveTo(54, 175, 65, 175);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+  for (const side of [-1, 1]) {
+    ctx.save();
+    if (side > 0) {
+      ctx.translate(260, 0);
+      ctx.scale(-1, 1);
+    }
+    drawLeftSleeve(false, shirtGradient, 1);
+    if (keeperBlend > 0.001) drawLeftSleeve(true, displayColor(shirtColor), keeperBlend);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = displayColor(shortsColor);
+  ctx.beginPath();
+  ctx.moveTo(79, 231);
+  ctx.quadraticCurveTo(126, 224, 180, 231);
+  ctx.lineTo(184, 326);
+  ctx.quadraticCurveTo(169, 338, 145, 337);
+  ctx.lineTo(130, 320);
+  ctx.lineTo(117, 339);
+  ctx.quadraticCurveTo(93, 341, 76, 327);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = displayColor(trimColor);
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(118, 88);
+  ctx.lineTo(130, 101);
+  ctx.lineTo(142, 88);
+  ctx.stroke();
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(119, 87);
+  ctx.lineTo(130, 98);
+  ctx.lineTo(141, 87);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(82, 222);
+  ctx.quadraticCurveTo(130, 230, 177, 222);
+  ctx.stroke();
+  ctx.save();
+  ctx.globalAlpha = 1 - keeperBlend;
+  ctx.translate(106, 128);
+  ctx.fillStyle = displayColor(trimColor);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(10, -3);
+  ctx.lineTo(13, 9);
+  ctx.lineTo(6, 15);
+  ctx.lineTo(-1, 9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = displayColor(stripeColor);
+  ctx.beginPath();
+  ctx.arc(6, 5, 3.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = displayColor(trimColor);
+  ctx.font = "600 8px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(keeperBlend > 0.5 ? "1" : "10", 151, 155);
+
+  if (keeperBlend > 0.001) {
+    ctx.save();
+    ctx.globalAlpha = keeperBlend;
+    for (const x of [29, 231]) {
+      ctx.fillStyle = "#e5cd85";
+      ctx.beginPath();
+      ctx.ellipse(x, 277, 10, 15, x < 100 ? -0.18 : 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#f2e2ad";
+      ctx.lineWidth = 1.2;
+      for (let finger = -1; finger <= 1; finger++) {
+        ctx.beginPath();
+        ctx.moveTo(x + finger * 4, 284);
+        ctx.lineTo(x + finger * 4, 291);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.drawImage(characterImage.image, 0, 0, 260, 555);
+  ctx.restore();
+  outfitTexture.needsUpdate = true;
+}
+
+drawClothing(0);
+function resizeScene() {
+  const { width, height } = sceneContainer.getBoundingClientRect();
+  if (!width || !height) return;
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height, false);
+}
+new ResizeObserver(resizeScene).observe(sceneContainer);
+resizeScene();
+
+const heightInput = $("estatura");
+const heightRange = $("height-range");
+const DEFAULT_HEIGHT = 175;
+const positionSelect = $("posicion");
+let keeperBlend = 0;
+let keeperTarget = 0;
+function changeKit(position) {
+  keeperTarget = position === "Goalkeeper" ? 1 : 0;
+}
+positionSelect.addEventListener("change", () => changeKit(positionSelect.value));
+changeKit(positionSelect.value);
+function updateHeight(value, isEstimated = false) {
+  const height = Math.min(220, Math.max(140, Number(value) || DEFAULT_HEIGHT));
+  player.scale.setScalar(height / 180);
+  const text = isEstimated ? `~${height} cm` : `${height} cm`;
+  $("height-output").textContent = text;
+  $("height-badge").textContent = isEstimated ? `${height} cm · referencia` : `${height} cm`;
+}
+heightInput.addEventListener("input", () => {
+  if (heightInput.value === "") {
+    heightRange.value = String(DEFAULT_HEIGHT);
+    updateHeight(DEFAULT_HEIGHT, true);
+    return;
+  }
+  const height = Number(heightInput.value);
+  heightRange.value = String(Math.min(220, Math.max(140, height)));
+  updateHeight(height);
+});
+heightRange.addEventListener("input", () => {
+  heightInput.value = heightRange.value;
+  updateHeight(heightRange.value);
+});
+updateHeight(DEFAULT_HEIGHT, true);
+
+const clock = new THREE.Clock();
+function render() {
+  const delta = Math.min(clock.getDelta(), 0.05);
+  const elapsed = clock.elapsedTime;
+  const previousBlend = keeperBlend;
+  keeperBlend += (keeperTarget - keeperBlend) * (1 - Math.exp(-delta * 5));
+  if (Math.abs(keeperTarget - keeperBlend) > 0.005 || Math.abs(previousBlend - keeperBlend) > 0.0005) {
+    drawClothing(keeperBlend);
+  }
+  player.rotation.y = Math.sin(elapsed * 0.3) * 0.008;
+  player.position.y = Math.sin(elapsed * 1.7) * 0.004;
+  shadow.scale.setScalar(player.scale.x);
+  renderer.render(scene, camera);
+  requestAnimationFrame(render);
+}
+render();
+status.hidden = true;
+</script>
+</body>
+</html>

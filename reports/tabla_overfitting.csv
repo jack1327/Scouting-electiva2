@@ -1,0 +1,3 @@
+Modelo,Accuracy Train,Accuracy Test,Brecha,F1 Élite Test
+Árbol sin restricción,0.916,0.8,0.116,0.625
+Árbol con poda previa,0.7059,0.7333,-0.0275,0.3333
